@@ -14,8 +14,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DocuAI Admin Dashboard",
-  description: "AI-powered document processing SaaS admin panel",
+  title: "Hunarix - AI Document Processing Platform",
+  description: "Hunarix is an intelligent document processing platform that leverages AI to automate extraction, analysis, and management of business documents at scale.",
+  keywords: ["AI", "document processing", "automation", "machine learning", "OCR", "data extraction"],
+  authors: [{ name: "Hunarix" }],
+  icons: {
+    icon: "/icon.svg",
+  },
+  openGraph: {
+    title: "Hunarix - AI Document Processing Platform",
+    description: "Intelligent document processing platform powered by AI for automated extraction and analysis.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
