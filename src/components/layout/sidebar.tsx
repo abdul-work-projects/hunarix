@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   LogOut,
+  MousePointerClick,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,11 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Analytics",
+    href: "/admin/analytics",
+    icon: MousePointerClick,
+  },
+  {
     title: "Customers",
     href: "/admin/customers",
     icon: Users,
@@ -63,7 +69,13 @@ const navItems = [
   },
 ];
 
-function NavContent({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
+function NavContent({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -80,7 +92,8 @@ function NavContent({ collapsed = false, onNavigate }: { collapsed?: boolean; on
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link
@@ -101,7 +114,12 @@ function NavContent({ collapsed = false, onNavigate }: { collapsed?: boolean; on
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
-              <item.icon className={cn("h-5 w-5 relative z-10", isActive && "text-primary-foreground")} />
+              <item.icon
+                className={cn(
+                  "h-5 w-5 relative z-10",
+                  isActive && "text-primary-foreground"
+                )}
+              />
               {!collapsed && (
                 <span className="relative z-10">{item.title}</span>
               )}
@@ -153,7 +171,7 @@ export function MobileHeader() {
           <Cpu className="h-5 w-5 text-primary-foreground" />
         </div>
         <span className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-          DocuAI
+          Hunarix - Admin Console
         </span>
       </Link>
 
@@ -166,7 +184,11 @@ export function MobileHeader() {
         <SheetContent side="left" className="w-72 p-0">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <div className="flex h-16 items-center border-b border-border px-4">
-            <Link href="/admin/overview" className="flex items-center gap-3" onClick={() => setOpen(false)}>
+            <Link
+              href="/admin/overview"
+              className="flex items-center gap-3"
+              onClick={() => setOpen(false)}
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg">
                 <Cpu className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -206,7 +228,7 @@ export function Sidebar() {
                   exit={{ opacity: 0 }}
                   className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
                 >
-                  DocuAI
+                  Hunarix
                 </motion.span>
               )}
             </Link>
