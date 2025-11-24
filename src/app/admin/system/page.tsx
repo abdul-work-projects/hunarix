@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -43,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { KpiCardSkeleton, ChartCardSkeleton, PieChartSkeleton } from "@/components/dashboard/loading-skeleton";
 import { cn } from "@/lib/utils";
 
 interface SystemData {
@@ -100,17 +101,24 @@ const errorTypeColors: Record<string, string> = {
   validation_error: "bg-blue-500/10 text-blue-500 border-blue-500/20",
 };
 
+const PAGE_KEY = "system";
+
 export default function SystemPage() {
   const [data, setData] = useState<SystemData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(PAGE_KEY));
 
   useEffect(() => {
-    fetch("/api/admin/system")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      });
+    const fetchData = async () => {
+      if (!hasPageLoaded(PAGE_KEY)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      const res = await fetch("/api/admin/system");
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(PAGE_KEY);
+    };
+    fetchData();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -126,10 +134,30 @@ export default function SystemPage() {
     return (
       <div className="space-y-8">
         <PageHeader title="System Health" description="Monitor system performance and errors" />
+        {/* Live Status Skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <KpiCardSkeleton key={i} index={i} />
+          ))}
+        </div>
+        {/* KPI Cards Skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <KpiCardSkeleton key={i} index={i + 4} />
           ))}
+        </div>
+        {/* Charts Skeleton */}
+        <div className="grid gap-6 xl:grid-cols-2">
+          <ChartCardSkeleton index={0} height="h-64" />
+          <ChartCardSkeleton index={1} height="h-64" />
+          <ChartCardSkeleton index={2} height="h-64" />
+          <PieChartSkeleton index={3} />
+          <ChartCardSkeleton index={4} height="h-64" className="xl:col-span-2" />
+        </div>
+        {/* Error Summary Skeleton */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <KpiCardSkeleton index={5} />
+          <ChartCardSkeleton index={6} height="h-48" className="xl:col-span-2" />
         </div>
       </div>
     );

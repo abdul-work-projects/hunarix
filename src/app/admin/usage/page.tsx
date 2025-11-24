@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -30,8 +31,8 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
+import { KpiCardSkeleton, ChartCardSkeleton, PieChartSkeleton } from "@/components/dashboard/loading-skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface UsageData {
@@ -88,17 +89,24 @@ const TYPE_COLORS = {
   Other: "#ec4899",
 };
 
+const PAGE_KEY = "usage";
+
 export default function UsagePage() {
   const [data, setData] = useState<UsageData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(PAGE_KEY));
 
   useEffect(() => {
-    fetch("/api/admin/usage")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      });
+    const fetchData = async () => {
+      if (!hasPageLoaded(PAGE_KEY)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      const res = await fetch("/api/admin/usage");
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(PAGE_KEY);
+    };
+    fetchData();
   }, []);
 
   const formatNumber = (value: number) => {
@@ -115,15 +123,26 @@ export default function UsagePage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Usage Analytics" description="Document processing metrics and insights" />
+        {/* KPI Cards Skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <KpiCardSkeleton key={i} index={i} />
           ))}
         </div>
+        {/* Token & Cost Stats Skeleton */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-80 rounded-xl" />
+          {Array.from({ length: 2 }).map((_, i) => (
+            <KpiCardSkeleton key={i} index={i + 4} />
           ))}
+        </div>
+        {/* Charts Skeleton */}
+        <div className="grid gap-6 xl:grid-cols-2">
+          <ChartCardSkeleton index={0} />
+          <ChartCardSkeleton index={1} />
+          <PieChartSkeleton index={2} />
+          <ChartCardSkeleton index={3} height="h-64" />
+          <ChartCardSkeleton index={4} height="h-32" className="xl:col-span-2" />
+          <ChartCardSkeleton index={5} height="h-64" className="xl:col-span-2" />
         </div>
       </div>
     );

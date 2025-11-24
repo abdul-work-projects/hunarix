@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import {
   DollarSign,
   Users,
@@ -33,8 +34,8 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
+import { KpiCardSkeleton, ChartCardSkeleton, PieChartSkeleton } from "@/components/dashboard/loading-skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface OverviewData {
   kpis: {
@@ -80,18 +81,26 @@ interface OverviewData {
 
 const COLORS = ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef"];
 
+const PAGE_KEY = "overview";
+
 export default function OverviewPage() {
   const [data, setData] = useState<OverviewData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(PAGE_KEY));
   const [selectedModel, setSelectedModel] = useState<string>("all");
 
   useEffect(() => {
-    fetch("/api/admin/overview")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      });
+    const fetchData = async () => {
+      // Only show loading delay on first visit
+      if (!hasPageLoaded(PAGE_KEY)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      const res = await fetch("/api/admin/overview");
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(PAGE_KEY);
+    };
+    fetchData();
   }, []);
 
   if (loading || !data) {
@@ -103,13 +112,17 @@ export default function OverviewPage() {
         />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <KpiCardSkeleton key={i} index={i} />
           ))}
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-80 rounded-xl" />
+            <ChartCardSkeleton key={i} index={i} />
           ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCardSkeleton index={4} />
+          <PieChartSkeleton index={5} />
         </div>
       </div>
     );

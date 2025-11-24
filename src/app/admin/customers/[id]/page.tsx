@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -42,6 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { KpiCardSkeleton, ChartCardSkeleton, PieChartSkeleton } from "@/components/dashboard/loading-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -112,17 +114,23 @@ const statusColors = {
 
 export default function CustomerDetailPage() {
   const params = useParams();
+  const pageKey = `customer-${params.id}`;
   const [data, setData] = useState<CustomerData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(pageKey));
 
   useEffect(() => {
-    fetch(`/api/admin/customers/${params.id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      });
-  }, [params.id]);
+    const fetchData = async () => {
+      if (!hasPageLoaded(pageKey)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      const res = await fetch(`/api/admin/customers/${params.id}`);
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(pageKey);
+    };
+    fetchData();
+  }, [params.id, pageKey]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -154,18 +162,41 @@ export default function CustomerDetailPage() {
   if (loading || !data) {
     return (
       <div className="space-y-8">
+        {/* Header Skeleton */}
         <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-12 w-12 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
           </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+        {/* Key Metrics Skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <KpiCardSkeleton key={i} index={i} />
           ))}
         </div>
+        {/* Usage Stats Skeleton */}
+        <div>
+          <Skeleton className="h-5 w-32 mb-4" />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <KpiCardSkeleton key={i} index={i + 4} />
+            ))}
+          </div>
+        </div>
+        {/* Charts Skeleton */}
+        <div className="grid gap-6 xl:grid-cols-2">
+          <ChartCardSkeleton index={0} height="h-64" />
+          <ChartCardSkeleton index={1} height="h-64" />
+          <PieChartSkeleton index={2} />
+        </div>
+        {/* Tables Skeleton */}
+        <ChartCardSkeleton index={3} height="h-48" />
+        <ChartCardSkeleton index={4} height="h-48" />
       </div>
     );
   }

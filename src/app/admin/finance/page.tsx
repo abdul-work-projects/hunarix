@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import { motion } from "framer-motion";
 import {
   DollarSign,
@@ -32,7 +33,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { KpiCardSkeleton, ChartCardSkeleton, PieChartSkeleton } from "@/components/dashboard/loading-skeleton";
 
 interface FinanceData {
   summary: {
@@ -66,17 +67,24 @@ interface FinanceData {
 
 const COLORS = ["#6366f1", "#8b5cf6", "#a855f7"];
 
+const PAGE_KEY = "finance";
+
 export default function FinancePage() {
   const [data, setData] = useState<FinanceData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(PAGE_KEY));
 
   useEffect(() => {
-    fetch("/api/admin/finance")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      });
+    const fetchData = async () => {
+      if (!hasPageLoaded(PAGE_KEY)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      const res = await fetch("/api/admin/finance");
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(PAGE_KEY);
+    };
+    fetchData();
   }, []);
 
   const formatCurrency = (value: number) => {
@@ -92,10 +100,22 @@ export default function FinancePage() {
     return (
       <div className="space-y-8">
         <PageHeader title="Finance" description="Revenue, costs, and profitability metrics" />
+        {/* KPI Cards Skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <KpiCardSkeleton key={i} index={i} />
           ))}
+        </div>
+        {/* Charts Skeleton */}
+        <div className="grid gap-6 xl:grid-cols-2">
+          <ChartCardSkeleton index={0} />
+          <ChartCardSkeleton index={1} />
+          <ChartCardSkeleton index={2} />
+          <PieChartSkeleton index={3} />
+          <ChartCardSkeleton index={4} />
+          <ChartCardSkeleton index={5} />
+          <ChartCardSkeleton index={6} height="h-64" className="xl:col-span-2" />
+          <ChartCardSkeleton index={7} height="h-64" className="xl:col-span-2" />
         </div>
       </div>
     );

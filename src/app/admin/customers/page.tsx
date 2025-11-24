@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -38,6 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { KpiCardSkeleton, TableRowSkeleton } from "@/components/dashboard/loading-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -87,9 +89,11 @@ const statusColors = {
   at_risk: "bg-amber-500/10 text-amber-500 border-amber-500/20",
 };
 
+const PAGE_KEY = "customers";
+
 export default function CustomersPage() {
   const [data, setData] = useState<CustomersData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(PAGE_KEY));
   const [page, setPage] = useState(1);
   const [plan, setPlan] = useState("all");
   const [status, setStatus] = useState("all");
@@ -98,23 +102,30 @@ export default function CustomersPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: "10",
-      plan,
-      status,
-      sortBy,
-      sortOrder,
-      ...(search && { search }),
-    });
+    const fetchData = async () => {
+      // Only show full loading skeleton on initial load
+      if (!hasPageLoaded(PAGE_KEY)) {
+        setLoading(true);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
 
-    fetch(`/api/admin/customers?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "10",
+        plan,
+        status,
+        sortBy,
+        sortOrder,
+        ...(search && { search }),
       });
+
+      const res = await fetch(`/api/admin/customers?${params}`);
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(PAGE_KEY);
+    };
+    fetchData();
   }, [page, plan, status, search, sortBy, sortOrder]);
 
   const handleSort = (field: string) => {
@@ -175,7 +186,13 @@ export default function CustomersPage() {
       />
 
       {/* Summary Cards */}
-      {data && (
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <KpiCardSkeleton key={i} index={i} />
+          ))}
+        </div>
+      ) : data && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

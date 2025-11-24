@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasPageLoaded, markPageAsLoaded } from "@/lib/page-cache";
 import {
   AreaChart,
   Area,
@@ -33,6 +34,7 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { KpiCard } from "@/components/dashboard/kpi-card";
+import { KpiCardSkeleton, ChartCardSkeleton, FunnelSkeleton } from "@/components/dashboard/loading-skeleton";
 
 interface AnalyticsData {
   summary: {
@@ -118,17 +120,24 @@ interface AnalyticsData {
 const COLORS = ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e"];
 const FUNNEL_COLORS = ["#6366f1", "#7c3aed", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"];
 
+const PAGE_KEY = "analytics";
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasPageLoaded(PAGE_KEY));
 
   useEffect(() => {
-    fetch("/api/admin/analytics")
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      });
+    const fetchData = async () => {
+      if (!hasPageLoaded(PAGE_KEY)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+      const res = await fetch("/api/admin/analytics");
+      const data = await res.json();
+      setData(data);
+      setLoading(false);
+      markPageAsLoaded(PAGE_KEY);
+    };
+    fetchData();
   }, []);
 
   if (loading || !data) {
@@ -139,9 +148,23 @@ export default function AnalyticsPage() {
           description="Track user behavior, journeys, and conversion metrics"
         />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <KpiCardSkeleton key={i} index={i} />
           ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <KpiCardSkeleton key={i} index={i + 4} />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCardSkeleton index={0} />
+          <ChartCardSkeleton index={1} />
+        </div>
+        <FunnelSkeleton index={2} />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCardSkeleton index={3} />
+          <ChartCardSkeleton index={4} />
         </div>
       </div>
     );
